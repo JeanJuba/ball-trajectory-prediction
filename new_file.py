@@ -16,7 +16,7 @@ def interpolation(centers):
     plt.gcf().clear()
     plt.gca().invert_yaxis()
     plt.plot(x, y, 'ro', label='original')
-    x_new = np.arange(14, 1064, 0.1)
+    x_new = np.arange(14, 1100, 0.1)
     f = interp1d(x, y, fill_value='extrapolate', kind='cubic')
 
     y_new = f(x_new)
@@ -24,7 +24,7 @@ def interpolation(centers):
     plt.plot(x_new, y_new, '--', label='interpolation')
     plt.legend()
     plt.draw()
-    plt.pause(0.2)
+    #plt.pause(0.2)
 
     return x_new, y_new
 
@@ -67,7 +67,8 @@ if video.isOpened():
                 x, y = interpolation(center_history)
                 points = list(zip(x, y))
                 print('points', points)
-                #cv2.polylines(frame, points, 1, (255, 255, 255))
+                cv2.polylines(frame, np.int32([points]), 0,  (0, 255, 255))
+
 
             cv2.imshow('frame', frame)
             time.sleep(0.2)
