@@ -112,6 +112,16 @@ button.grid(row=0, column=1)
 button_start = Button(tk, text='Start', command=lambda: start_command(video_name_field.get()), width=8)
 button_start.grid(row=1, column=1)
 
+width = 366
+height = 50
+
+frame_x = (tk.winfo_screenwidth())/2 - width/2
+frame_y = (tk.winfo_screenheight())/2 - height/2
+
+tk.geometry('%dx%d+%d+%d' % (width, height, frame_x, frame_y))
+
+print(frame_x, frame_y)
+
 tk.mainloop()
 
 
