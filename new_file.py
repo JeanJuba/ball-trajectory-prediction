@@ -6,6 +6,12 @@ import matplotlib.pyplot as plt
 from tkinter import *
 from tkinter.filedialog import askopenfile
 import os
+import ctypes
+
+
+def get_screen_resolution():
+    user32 = ctypes.windll.user32
+    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
 
 def get_video_file():
@@ -20,8 +26,8 @@ def get_video_file():
 
 def interpolation(centers):
     np_array = np.array(centers)
-    x = np_array[:,0]
-    y = np_array[:,1]
+    x = np_array[:, 0]
+    y = np_array[:, 1]
     print('np_array', np_array)
     print('x', x)
     print('y', y)
@@ -42,18 +48,32 @@ def interpolation(centers):
     return x_new, y_new
 
 
-def start_command(v_name=''):
+#If nothing is passed then the standard are the limits for the green color in hsv
+def start_command(v_name='', hsv_lower_lim='', hsv_higher_lim=''):
     print(v_name)
+
+    if not hsv_lower_lim.isdigit():
+        hsv_lower_lim = 29
+
+    if not hsv_higher_lim.isdigit():
+        hsv_higher_lim = 64
+
+    print('hsv lower: %d \nhsv higher: %d' % (int(hsv_lower_lim), int(hsv_higher_lim)))
     if v_name.endswith('.mp4'):
-        init(v_name)
+        init(v_name, int(hsv_lower_lim), int(hsv_higher_lim))
+
     else:
-        print('Formato inválido!!!')
+        print('Invalid Format!!!')
 
 
-def init(video_name):
+def init(video_name, hsv_lower_lim, hsv_higher_lim):
+    frame_width = 700
+    frame_height = 600
+
     video = cv2.VideoCapture(video_name)
-    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('frame', 800, 640)
+
+    lower_lim = [hsv_lower_lim, 50, 50]
+    higher_lim = [hsv_higher_lim, 255, 255]
 
     if video.isOpened():
 
@@ -62,11 +82,20 @@ def init(video_name):
             ret, frame = video.read()
             if ret:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                frame = cv2.resize(frame, (frame_width, frame_height))
 
-                lower_green = np.array([29, 86, 6])
-                upper_green = np.array([64, 255, 255])
+                lower_color = np.array(lower_lim)
+                upper_color = np.array(higher_lim)
 
-                mask = cv2.inRange(hsv, lower_green, upper_green)
+                resized_mask = cv2.inRange(hsv, lower_color, upper_color)
+                mask = cv2.resize(resized_mask, (frame_width, frame_height))
+
+                cv2.namedWindow('HSV Mask')
+                cv2.imshow('HSV Mask', mask)
+                cv2.moveWindow('HSV Mask', int(get_screen_resolution()[0]/2),
+                               int(get_screen_resolution()[1]/2) - int(frame_height/2))
+                cv2.resizeWindow('HSV Mask', frame_width, frame_height)
+
                 contour = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
                 center = None
                 if len(contour) > 0:
@@ -91,7 +120,11 @@ def init(video_name):
                     print('points', points)
                     cv2.polylines(frame, np.int32([points]), 0,  (0, 255, 255))
 
-                cv2.imshow('frame', frame)
+                cv2.namedWindow('Identified Object')
+                cv2.imshow('Identified Object', frame)
+                cv2.moveWindow('Identified Object', int(get_screen_resolution()[0]/2) - frame_width - 30,
+                               int(get_screen_resolution()[1]/2) - int(frame_height/2))
+                cv2.resizeWindow('Identified Object', frame_width, frame_height)
                 time.sleep(0.2)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -102,17 +135,42 @@ def init(video_name):
 
 
 tk = Tk()
-tk.title('Ball Trajectory Detection')
-video_name_field = Entry(tk, width=50)
-video_name_field.grid(row=0, column=0)
+tk.title('Ball Trajectory Prediction')
 
-button = Button(tk, text='Find File', command=get_video_file, width=8)
-button.grid(row=0, column=1)
+top = Frame(tk)
+top.pack(side='top', fill='both', expand='false')
 
-button_start = Button(tk, text='Start', command=lambda: start_command(video_name_field.get()), width=8)
-button_start.grid(row=1, column=1)
+bottom = Frame(tk)
+bottom.pack(side='bottom', fill='x', expand='true')
 
-width = 366
+video_name_label = Label(top, text='Video Path: ', width=15, anchor=W)
+video_name_label.pack(side='left')
+
+video_name_field = Entry(top, width=60)
+video_name_field.pack(side='left', fill='both', expand='true')
+
+button_file = Button(top, text='Find File:', command=get_video_file, width=10)
+button_file.pack(side='right')
+
+lower_color_label = Label(bottom, text='Lower HSV Limit: ',  width=15, anchor=W)
+lower_color_label.pack(side='left')
+
+lower_color_field = Entry(bottom,  width=10)
+lower_color_field.pack(side='left')
+
+higher_color_label = Label(bottom, text='Higher HSV Limit: ', width=15, anchor=W)
+higher_color_label.pack(side='left')
+
+higher_color_field = Entry(bottom, width=10)
+higher_color_field.pack(side='left')
+
+button_start = Button(bottom, text='Start',  command=lambda: start_command(video_name_field.get(),
+                                                                           lower_color_field.get(),
+                                                                           higher_color_field.get()), width=10)
+button_start.pack(side='right')
+
+
+width = 600
 height = 50
 
 frame_x = (tk.winfo_screenwidth())/2 - width/2
@@ -120,8 +178,8 @@ frame_y = (tk.winfo_screenheight())/2 - height/2
 
 tk.geometry('%dx%d+%d+%d' % (width, height, frame_x, frame_y))
 
-print(frame_x, frame_y)
-
 tk.mainloop()
+
+
 
 
