@@ -10,16 +10,20 @@ import ctypes
 
 
 def get_screen_resolution():
-    user32 = ctypes.windll.user32
-    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    # OS is Windows
+    if os.name is 'nt':
+        user32 = ctypes.windll.user32
+        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    else:
+        # Other OS
+        return 1900, 900
 
 
 def get_video_file():
-    home = os.path.expanduser('~')
-    file = askopenfile(initialdir=home)
+    file = askopenfile(initialdir='./')
     if file:
         print(file.name)
-        #video_name_field.configure(text=file.name)
+        # video_name_field.configure(text=file.name)
         video_name_field.delete(0, END)
         video_name_field.insert(0, file.name)
 
@@ -43,13 +47,13 @@ def interpolation(centers):
     plt.plot(x_new, y_new, '--', label='interpolation')
     plt.legend()
     plt.draw()
-    #plt.pause(0.2)
+    # plt.pause(0.2)
 
     return x_new, y_new
 
 
-#If nothing is passed then the standard are the limits for the green color in hsv
 def start_command(v_name='', hsv_lower_lim='', hsv_higher_lim=''):
+    # If nothing is passed then the standard are the limits for the green color in hsv
     print(v_name)
 
     if not hsv_lower_lim.isdigit():
@@ -97,7 +101,7 @@ def init(video_name, hsv_lower_lim, hsv_higher_lim):
                 cv2.resizeWindow('HSV Mask', frame_width, frame_height)
 
                 contour = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
-                center = None
+                # center = None
                 if len(contour) > 0:
                     c = max(contour, key=cv2.contourArea)
                     (x, y), radius = cv2.minEnclosingCircle(c)
@@ -128,7 +132,7 @@ def init(video_name, hsv_lower_lim, hsv_higher_lim):
                 time.sleep(0.2)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                exit()
 
     video.release()
     cv2.destroyAllWindows()
@@ -169,15 +173,13 @@ button_start = Button(bottom, text='Start',  command=lambda: start_command(video
                                                                            higher_color_field.get()), width=10)
 button_start.pack(side='right')
 
-
-width = 600
+width = 720
 height = 50
 
 frame_x = (tk.winfo_screenwidth())/2 - width/2
 frame_y = (tk.winfo_screenheight())/2 - height/2
 
 tk.geometry('%dx%d+%d+%d' % (width, height, frame_x, frame_y))
-
 tk.mainloop()
 
 
